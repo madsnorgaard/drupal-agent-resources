@@ -12,8 +12,10 @@ You are an expert in DDEV, the Docker-based local development environment for PH
 DDEV provides a consistent, containerized local development environment with:
 - Pre-configured PHP, web server, database containers
 - Automatic HTTPS with mkcert
-- Built-in Drush, Composer, Node.js support
+- Built-in Composer and Node.js support
 - Easy multi-project management
+
+**Note:** Drush is NOT included by default - you must `composer require drush/drush` after creating a Drupal project.
 
 ## Essential Commands
 
@@ -57,21 +59,20 @@ ddev share          # Create public URL (ngrok)
 ### .ddev/config.yaml
 ```yaml
 name: my-project
-type: drupal10
+type: drupal           # Auto-detects Drupal version, or use drupal11/drupal10
 docroot: web
-php_version: "8.2"
+php_version: "8.3"     # Use 8.3 for Drupal 11, 8.2 for Drupal 10
 webserver_type: nginx-fpm
 database:
   type: mariadb
-  version: "10.6"
+  version: "10.11"
 
 # Additional hostnames
 additional_hostnames:
   - api.my-project.ddev.site
 
-# Custom PHP settings
-php_version: "8.2"
-webimage_extra_packages: [php8.2-imagick]
+# Extra PHP packages
+webimage_extra_packages: [php8.3-imagick]
 ```
 
 ### Common Customizations
@@ -101,20 +102,37 @@ Custom nginx configuration for special routing needs.
 
 ## Drupal-Specific Setup
 
-### New Drupal Project
+### New Drupal 11 Project
 ```bash
 mkdir my-drupal && cd my-drupal
-ddev config --project-type=drupal10 --docroot=web
+ddev config --project-type=drupal --docroot=web --php-version=8.3
 ddev start
-ddev composer create drupal/recommended-project
-ddev drush site:install --account-name=admin --account-pass=admin
+ddev composer create-project drupal/recommended-project:^11
+ddev composer require drush/drush
+ddev drush site:install --account-name=admin --account-pass=admin -y
+ddev launch
+```
+
+**Important notes:**
+- `ddev composer create-project` requires a clean directory - move any existing files (like `.claude/`) out first, then move them back after
+- Drush is NOT included in Drupal 11's recommended-project - always install it separately
+- Use `--project-type=drupal` (auto-detects version) or explicitly `drupal11`
+
+### New Drupal 10 Project
+```bash
+mkdir my-drupal && cd my-drupal
+ddev config --project-type=drupal --docroot=web --php-version=8.2
+ddev start
+ddev composer create-project drupal/recommended-project:^10
+ddev composer require drush/drush
+ddev drush site:install --account-name=admin --account-pass=admin -y
 ddev launch
 ```
 
 ### Existing Drupal Project
 ```bash
 cd existing-project
-ddev config --project-type=drupal10 --docroot=web
+ddev config --project-type=drupal --docroot=web
 ddev start
 ddev composer install
 ddev import-db --file=database.sql.gz
@@ -124,6 +142,17 @@ ddev drush cr
 ## Troubleshooting
 
 ### Common Issues
+
+**`ddev composer create-project` fails with "not allowed to be present":**
+```bash
+# This happens when extra directories exist (like .claude/, .git/, etc.)
+# Solution: Move them out temporarily
+mv .claude /tmp/claude-backup
+mv .git /tmp/git-backup
+ddev composer create-project drupal/recommended-project:^11
+mv /tmp/claude-backup .claude
+mv /tmp/git-backup .git
+```
 
 **Port conflicts:**
 ```bash
