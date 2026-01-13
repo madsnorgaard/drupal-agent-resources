@@ -9,6 +9,7 @@ Install any resource with a single command:
 ```bash
 # Skills
 uvx add-skill madsnorgaard/drupal-expert
+uvx add-skill madsnorgaard/drupal-security
 uvx add-skill madsnorgaard/drupal-migration
 uvx add-skill madsnorgaard/ddev-expert
 uvx add-skill madsnorgaard/docker-local
@@ -35,6 +36,7 @@ uvx add-command madsnorgaard/performance-check
 | Skill | Description |
 |-------|-------------|
 | `drupal-expert` | Drupal 10/11 development - modules, themes, services, hooks, D10/D11 compatibility |
+| `drupal-security` | Security expertise - auto-warns about XSS, SQL injection, access bypass while coding |
 | `drupal-migration` | Migration expertise - D7-to-D10, CSV imports, custom source/process plugins |
 | `ddev-expert` | DDEV local development - commands, Xdebug, custom services, performance tuning |
 | `docker-local` | Custom Docker Compose patterns for non-DDEV projects |
