@@ -2,6 +2,8 @@
 
 Reusable Claude Code resources for Drupal 10/11 development with DDEV and Docker-based local environments.
 
+Built on the [agent-resources specification](https://github.com/kasperjunge/agent-resources) by Kasper Junge.
+
 ## Installation
 
 Install any resource with a single command:

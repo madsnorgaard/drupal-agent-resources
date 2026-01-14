@@ -267,7 +267,275 @@ $build['content'] = [
 - `user:456` - specific user
 - `config:my_module.settings` - configuration
 
-## Drush Commands
+## CLI-First Development Workflows
+
+**Before writing custom code, use Drush generators to scaffold boilerplate code.**
+
+Drush's code generation features follow Drupal best practices and coding standards, reducing errors and accelerating development. Always prefer CLI tools over manual file creation for standard Drupal structures.
+
+### Content Types and Fields
+
+**CRITICAL: Use CLI commands to create content types and fields instead of manual configuration or PHP code.**
+
+#### Create Content Types
+
+```bash
+# Interactive mode - Drush prompts for all details
+drush generate content-entity
+
+# Create via PHP eval (for scripts/automation)
+drush php:eval "
+\$type = \Drupal\node\Entity\NodeType::create([
+  'type' => 'article',
+  'name' => 'Article',
+  'description' => 'Articles with images and tags',
+  'new_revision' => TRUE,
+  'display_submitted' => TRUE,
+  'preview_mode' => 1,
+]);
+\$type->save();
+echo 'Content type created.';
+"
+```
+
+#### Create Fields
+
+```bash
+# Interactive mode (recommended for first-time use)
+drush field:create
+
+# Non-interactive mode with all parameters
+drush field:create node article \
+  --field-name=field_subtitle \
+  --field-label="Subtitle" \
+  --field-type=string \
+  --field-widget=string_textfield \
+  --is-required=0 \
+  --cardinality=1
+
+# Create a reference field
+drush field:create node article \
+  --field-name=field_tags \
+  --field-label="Tags" \
+  --field-type=entity_reference \
+  --field-widget=entity_reference_autocomplete \
+  --cardinality=-1 \
+  --target-type=taxonomy_term
+
+# Create an image field
+drush field:create node article \
+  --field-name=field_image \
+  --field-label="Image" \
+  --field-type=image \
+  --field-widget=image_image \
+  --is-required=0 \
+  --cardinality=1
+```
+
+**Common field types:**
+- `string` - Plain text
+- `string_long` - Long text (textarea)
+- `text_long` - Formatted text
+- `text_with_summary` - Body field with summary
+- `integer` - Whole numbers
+- `decimal` - Decimal numbers
+- `boolean` - Checkbox
+- `datetime` - Date/time
+- `email` - Email address
+- `link` - URL
+- `image` - Image upload
+- `file` - File upload
+- `entity_reference` - Reference to other entities
+- `list_string` - Select list
+- `telephone` - Phone number
+
+**Common field widgets:**
+- `string_textfield` - Single line text
+- `string_textarea` - Multi-line text
+- `text_textarea` - Formatted text area
+- `text_textarea_with_summary` - Body with summary
+- `number` - Number input
+- `checkbox` - Single checkbox
+- `options_select` - Select dropdown
+- `options_buttons` - Radio buttons/checkboxes
+- `datetime_default` - Date picker
+- `email_default` - Email input
+- `link_default` - URL input
+- `image_image` - Image upload
+- `file_generic` - File upload
+- `entity_reference_autocomplete` - Autocomplete reference
+
+#### Manage Fields
+
+```bash
+# List all fields on a content type
+drush field:info node article
+
+# List available field types
+drush field:types
+
+# List available field widgets
+drush field:widgets
+
+# List available field formatters
+drush field:formatters
+
+# Delete a field
+drush field:delete node.article.field_subtitle
+```
+
+### Generate Module Scaffolding
+
+```bash
+# Generate a complete module
+drush generate module
+# Prompts for: module name, description, package, dependencies
+
+# Generate a controller
+drush generate controller
+# Prompts for: module, class name, route path, services to inject
+
+# Generate a simple form
+drush generate form-simple
+# Creates form with submit/validation, route, and menu link
+
+# Generate a config form
+drush generate form-config
+# Creates settings form with automatic config storage
+
+# Generate a block plugin
+drush generate plugin:block
+# Creates block plugin with dependency injection support
+
+# Generate a service
+drush generate service
+# Creates service class and services.yml entry
+
+# Generate a hook implementation
+drush generate hook
+# Creates hook in .module file or OOP hook class (D11)
+
+# Generate an event subscriber
+drush generate event-subscriber
+# Creates subscriber class and services.yml entry
+```
+
+### Generate Entity Types
+
+```bash
+# Generate a custom content entity
+drush generate entity:content
+# Creates entity class, storage, access control, views integration
+
+# Generate a config entity
+drush generate entity:configuration
+# Creates config entity with list builder and forms
+```
+
+### Generate Common Patterns
+
+```bash
+# Generate a plugin (various types)
+drush generate plugin:field:formatter
+drush generate plugin:field:widget
+drush generate plugin:field:type
+drush generate plugin:block
+drush generate plugin:condition
+drush generate plugin:filter
+
+# Generate a Drush command
+drush generate drush:command-file
+
+# Generate a test
+drush generate test:unit
+drush generate test:kernel
+drush generate test:browser
+```
+
+### Create Test Content
+
+**Use Devel Generate for test data instead of manual entry:**
+
+```bash
+# Generate 50 nodes
+drush devel-generate:content 50 --bundles=article,page --kill
+
+# Generate taxonomy terms
+drush devel-generate:terms 100 tags --kill
+
+# Generate users
+drush devel-generate:users 20
+
+# Generate media entities
+drush devel-generate:media 30 --bundles=image,document
+```
+
+### Workflow Best Practices
+
+**1. Always start with generators:**
+```bash
+# Create module structure first
+drush generate module
+
+# Then generate specific components
+drush generate controller
+drush generate form-config
+drush generate service
+```
+
+**2. Use field:create for all field additions:**
+```bash
+# Never manually create field config files
+# Use drush field:create instead
+drush field:create node article --field-name=field_subtitle
+```
+
+**3. Export configuration after CLI changes:**
+```bash
+# After creating fields/content types via CLI
+drush config:export -y
+```
+
+**4. Document your scaffolding in README:**
+```markdown
+## Regenerating Module Structure
+
+This module was scaffolded with:
+- drush generate module
+- drush generate controller
+- drush field:create node article --field-name=field_custom
+```
+
+### Avoiding Common Mistakes
+
+**DON'T manually create:**
+- Content type config files (`node.type.*.yml`)
+- Field config files (`field.field.*.yml`, `field.storage.*.yml`)
+- View mode config (`core.entity_view_display.*.yml`)
+- Form mode config (`core.entity_form_display.*.yml`)
+
+**DO use CLI commands:**
+- `drush generate` for code scaffolding
+- `drush field:create` for fields
+- `drush php:eval` for content types
+- `drush config:export` to capture changes
+
+### Integration with DDEV/Docker
+
+```bash
+# When using DDEV
+ddev drush generate module
+ddev drush field:create node article
+
+# When using Docker Compose
+docker compose exec php drush generate module
+docker compose exec php drush field:create node article
+
+# When using DDEV with custom commands
+ddev exec drush generate controller
+```
+
+## Essential Drush Commands
 
 ```bash
 drush cr                    # Clear cache
@@ -278,6 +546,12 @@ drush en module_name        # Enable module
 drush pmu module_name       # Uninstall module
 drush ws --severity=error   # Watch logs
 drush php:eval "code"       # Run PHP
+
+# Code generation (see CLI-First Development above)
+drush generate              # List all generators
+drush gen module            # Generate module (gen is alias)
+drush field:create          # Create field (fc is alias)
+drush entity:create         # Create entity content
 ```
 
 ## Twig Best Practices
@@ -521,3 +795,7 @@ composer require --dev drupal/coder
 - [Drupal 11 Readiness](https://www.drupal.org/docs/upgrading-drupal/how-to-prepare-your-drupal-7-or-8-site-for-drupal-9/deprecation-checking-and-correction-tools)
 - [OOP Hooks](https://www.drupal.org/docs/develop/creating-modules/implementing-hooks-in-drupal-11)
 - [Drupal Recipes](https://www.drupal.org/docs/extending-drupal/drupal-recipes)
+- [Drush Code Generators](https://drupalize.me/tutorial/develop-drupal-modules-faster-drush-code-generators)
+- [Drush Generate Command](https://www.drush.org/11.x/commands/generate/)
+- [Drush field:create](https://www.drush.org/13.x/commands/field_create/)
+- [Scaffold Custom Content Entity with Drush](https://drupalize.me/tutorial/scaffold-custom-content-entity-type-drush-generators)
