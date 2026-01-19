@@ -956,6 +956,356 @@ composer require --dev drupal/coder
 ./vendor/bin/phpcs --config-set installed_paths vendor/drupal/coder/coder_sniffer
 ```
 
+## AI-Assisted Development Patterns
+
+**This section describes methodologies for effective AI-assisted Drupal development, based on patterns from the Drupal community's AI tooling.**
+
+### The Context-First Approach
+
+**CRITICAL: Always gather context before generating code.** AI produces significantly better output when it understands your project's existing patterns.
+
+#### Step 1: Find Similar Files
+
+Before generating new code, locate similar implementations in your codebase:
+
+```bash
+# Find similar services
+find modules/custom -name "*.services.yml" -exec grep -l "entity_type.manager" {} \;
+
+# Find similar forms
+find modules/custom -name "*Form.php" -type f
+
+# Find similar controllers
+find modules/custom -path "*/Controller/*.php" -type f
+
+# Find similar plugins
+find modules/custom -path "*/Plugin/Block/*.php" -type f
+```
+
+**Why this matters:** When you show existing code patterns to AI, it will:
+- Match your naming conventions
+- Use the same dependency injection patterns
+- Follow your project's architectural style
+- Integrate consistently with existing code
+
+#### Step 2: Understand Project Patterns
+
+Before requesting code generation, identify:
+
+```markdown
+1. **Naming patterns**
+   - Service naming: `my_module.helper` vs `my_module_helper`
+   - Class naming: `MyModuleHelper` vs `HelperService`
+   - File organization: flat vs nested directories
+
+2. **Dependency patterns**
+   - Which services are commonly injected?
+   - How is logging handled?
+   - How are entities loaded?
+
+3. **Configuration patterns**
+   - Where is config stored?
+   - How are settings forms structured?
+   - What schema patterns are used?
+```
+
+#### Step 3: Provide Context in Requests
+
+Structure your requests with explicit context:
+
+```markdown
+**Bad request:**
+"Create a service that processes nodes"
+
+**Good request:**
+"Create a service that processes article nodes.
+
+Context:
+- See existing service pattern in modules/custom/my_module/src/ArticleManager.php
+- Inject entity_type.manager and logger.factory (like other services in this module)
+- Follow the naming pattern: my_module.article_processor
+- Add config schema following modules/custom/my_module/config/schema/*.yml pattern"
+```
+
+### Structured Prompting for Drupal Tasks
+
+**Use hierarchical prompts for complex generation tasks.** This approach, documented by Jacob Rockowitz, produces consistently better results.
+
+#### Prompt Template Structure
+
+```markdown
+## Task
+[One sentence describing what you want to create]
+
+## Module Context
+- Module name: my_custom_module
+- Module path: modules/custom/my_custom_module
+- Drupal version: 10.3+ / 11
+- PHP version: 8.2+
+
+## Requirements
+- [Specific requirement 1]
+- [Specific requirement 2]
+- [Specific requirement 3]
+
+## Code Standards
+- Use constructor property promotion
+- Use PHP 8 attributes for plugins
+- Inject all dependencies (no \Drupal::service())
+- Include proper docblocks
+- Follow Drupal coding standards
+
+## Similar Files (for reference)
+- [Path to similar implementation]
+- [Path to similar implementation]
+
+## Expected Output
+- [File 1]: [Description]
+- [File 2]: [Description]
+```
+
+#### Example: Creating a Block Plugin
+
+```markdown
+## Task
+Create a block that displays recent articles with a configurable limit.
+
+## Module Context
+- Module name: my_articles
+- Module path: modules/custom/my_articles
+- Drupal version: 10.3+
+- PHP version: 8.2+
+
+## Requirements
+- Display recent article nodes (type: article)
+- Configurable number of items (default: 5)
+- Show title, date, and teaser
+- Cache per page with article list tag
+- Access: view published content permission
+
+## Code Standards
+- Use #[Block] attribute (not annotation)
+- Inject entity_type.manager and date.formatter
+- Use ContainerFactoryPluginInterface
+- Include config schema
+
+## Similar Files
+- modules/custom/my_articles/src/Plugin/Block/FeaturedArticleBlock.php
+
+## Expected Output
+- src/Plugin/Block/RecentArticlesBlock.php
+- config/schema/my_articles.schema.yml (update)
+```
+
+### The Inside-Out Approach
+
+**Based on the Drupal AI CodeGenerator pattern**, this methodology breaks complex tasks into deterministic steps:
+
+#### Phase 1: Task Classification
+
+Determine what type of task is being requested:
+
+| Type | Description | Approach |
+|------|-------------|----------|
+| **Create** | New file/component needed | Generate with DCG, then customize |
+| **Edit** | Modify existing code | Read first, then targeted changes |
+| **Information** | Question about code/architecture | Search and explain |
+| **Composite** | Multiple steps needed | Break down, execute sequentially |
+
+#### Phase 2: Solvability Check
+
+Before generating, verify:
+
+```markdown
+✓ Required dependencies available?
+✓ Target directory exists and is writable?
+✓ No conflicting files/classes?
+✓ All referenced services/classes exist?
+✓ Compatible with Drupal version?
+```
+
+#### Phase 3: Scaffolding First
+
+**Use DCG to scaffold, then customize.** This ensures Drupal best practices:
+
+```bash
+# 1. Generate base structure
+drush generate plugin:block --answers='{
+  "module": "my_module",
+  "plugin_id": "recent_articles",
+  "admin_label": "Recent Articles",
+  "class": "RecentArticlesBlock"
+}'
+
+# 2. Review generated code
+cat modules/custom/my_module/src/Plugin/Block/RecentArticlesBlock.php
+
+# 3. Customize with specific requirements
+# (AI edits the generated file to add business logic)
+```
+
+#### Phase 4: Auto-Generate Tests
+
+**Always generate tests alongside code:**
+
+```bash
+# Generate kernel test for the new functionality
+drush generate test:kernel --answers='{
+  "module": "my_module",
+  "class": "RecentArticlesBlockTest"
+}'
+```
+
+### Iterative Development Workflow
+
+**Expect 80% completion from AI-generated code.** Plan for refinement cycles.
+
+#### The Realistic Workflow
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  1. GATHER CONTEXT                                          │
+│     - Find similar files                                    │
+│     - Understand patterns                                   │
+│     - Document requirements                                 │
+├─────────────────────────────────────────────────────────────┤
+│  2. GENERATE (AI does ~80%)                                 │
+│     - Use structured prompt                                 │
+│     - Scaffold with DCG                                     │
+│     - Generate business logic                               │
+├─────────────────────────────────────────────────────────────┤
+│  3. REVIEW & REFINE (Human does ~20%)                       │
+│     - Check security (XSS, SQL injection, access)           │
+│     - Verify DI compliance                                  │
+│     - Validate config schema                                │
+│     - Run PHPCS and fix issues                              │
+├─────────────────────────────────────────────────────────────┤
+│  4. TEST                                                    │
+│     - Run generated tests                                   │
+│     - Add edge case tests                                   │
+│     - Manual smoke testing                                  │
+├─────────────────────────────────────────────────────────────┤
+│  5. ITERATE (if needed)                                     │
+│     - Fix failing tests                                     │
+│     - Address review feedback                               │
+│     - Refine based on testing                               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Common Refinement Tasks
+
+| Issue | Solution |
+|-------|----------|
+| PHPCS errors | Run `phpcbf` for auto-fix, manual fix for complex issues |
+| Missing DI | Add to constructor, update `create()` method |
+| No cache metadata | Add `#cache` with tags, contexts, max-age |
+| Missing access check | Add permission check or access handler |
+| No config schema | Create schema file matching config structure |
+| Hardcoded strings | Wrap in `$this->t()` with proper placeholders |
+
+### Integration with Drupal AI Module
+
+**When the AI module is available**, leverage `drush aigen` for rapid prototyping:
+
+```bash
+# Check if AI Generation is available
+drush pm:list --filter=ai_generation
+
+# Generate a complete content type
+drush aigen "Create a content type called 'Event' with fields: title, date (datetime), location (text), description (formatted text), image (media reference)"
+
+# Generate a view
+drush aigen "Create a view showing upcoming events sorted by date with a calendar display"
+
+# Generate a custom module
+drush aigen "Create a module that sends email notifications when new events are created"
+```
+
+**Important:** Always review AI-generated code. The AI Generation module is experimental and intended for development only.
+
+### Prompt Patterns for Common Tasks
+
+#### Content Type with Fields
+
+```markdown
+Create a content type for [purpose].
+
+Content type:
+- Machine name: [machine_name]
+- Label: [Human Label]
+- Description: [Description]
+- Publishing options: published by default, create new revision
+- Display author and date: no
+
+Fields:
+1. [field_name] ([field_type]): [description] - [required/optional]
+2. [field_name] ([field_type]): [description] - [required/optional]
+
+After creation, export config with: drush cex -y
+```
+
+#### Custom Service
+
+```markdown
+Create a service for [purpose].
+
+Service:
+- Name: [module].service_name
+- Class: Drupal\[module]\[ServiceClass]
+- Inject: [service1], [service2]
+
+Methods:
+- methodName(params): return_type - [description]
+- methodName(params): return_type - [description]
+
+Include:
+- Interface definition
+- services.yml entry
+- PHPDoc with @param and @return
+```
+
+#### Event Subscriber
+
+```markdown
+Create an event subscriber for [purpose].
+
+Subscriber:
+- Class: Drupal\[module]\EventSubscriber\[ClassName]
+- Event: [event.name]
+- Priority: [0-100]
+
+Behavior:
+- [Describe what should happen when event fires]
+
+Include:
+- services.yml entry with tags
+- Proper type hints
+```
+
+### Debugging AI-Generated Code
+
+When generated code doesn't work:
+
+```bash
+# 1. Check for PHP syntax errors
+php -l modules/custom/my_module/src/MyClass.php
+
+# 2. Clear all caches
+drush cr
+
+# 3. Check service container
+drush devel:services | grep my_module
+
+# 4. Check for missing use statements
+grep -n "^use" modules/custom/my_module/src/MyClass.php
+
+# 5. Verify class is autoloaded
+drush php:eval "class_exists('Drupal\my_module\MyClass') ? print 'Found' : print 'Not found';"
+
+# 6. Check logs
+drush ws --severity=error --count=20
+```
+
 ## Sources
 
 - [Drupal Testing Types](https://www.drupal.org/docs/develop/automated-testing/types-of-tests)
@@ -966,6 +1316,11 @@ composer require --dev drupal/coder
 - [OOP Hooks](https://www.drupal.org/docs/develop/creating-modules/implementing-hooks-in-drupal-11)
 - [Drupal Recipes](https://www.drupal.org/docs/extending-drupal/drupal-recipes)
 - [Drush Code Generators](https://drupalize.me/tutorial/develop-drupal-modules-faster-drush-code-generators)
-- [Drush Generate Command](https://www.drush.org/11.x/commands/generate/)
+- [Drush Generate Command](https://www.drush.org/13.x/commands/generate/)
 - [Drush field:create](https://www.drush.org/13.x/commands/field_create/)
 - [Scaffold Custom Content Entity with Drush](https://drupalize.me/tutorial/scaffold-custom-content-entity-type-drush-generators)
+- [Drupal Code Generator (DCG)](https://github.com/Chi-teck/drupal-code-generator)
+- [Building a Drupal Module Using AI - Jacob Rockowitz](https://www.jrockowitz.com/blog/building-a-drupal-model-using-al)
+- [AI Generation Module](https://www.drupal.org/project/ai_generation)
+- [AI Module](https://www.drupal.org/project/ai)
+- [CodeGenerator Agent Pattern](https://git.drupalcode.org/-/snippets/261)
