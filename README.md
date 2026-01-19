@@ -2,29 +2,48 @@
 
 Reusable Claude Code resources for Drupal 10/11 development with DDEV and Docker-based local environments.
 
-Built on the [agent-resources specification](https://github.com/kasperjunge/agent-resources) by Kasper Junge.
+Built on the [agent-resources](https://github.com/kasperjunge/agent-resources) package manager by Kasper Junge.
 
 ## Installation
 
-Install any resource with a single command:
+Install resources with a single command using `agr` (auto-detects resource type):
 
 ```bash
 # Skills
-uvx add-skill madsnorgaard/drupal-expert
-uvx add-skill madsnorgaard/drupal-security
-uvx add-skill madsnorgaard/drupal-migration
-uvx add-skill madsnorgaard/ddev-expert
-uvx add-skill madsnorgaard/docker-local
+agr add madsnorgaard/drupal-expert
+agr add madsnorgaard/drupal-security
+agr add madsnorgaard/drupal-migration
+agr add madsnorgaard/ddev-expert
+agr add madsnorgaard/docker-local
 
 # Agents
-uvx add-agent madsnorgaard/drupal-reviewer
+agr add madsnorgaard/drupal-reviewer
 
 # Commands
-uvx add-command madsnorgaard/drush-check
-uvx add-command madsnorgaard/module-scaffold
-uvx add-command madsnorgaard/config-export
-uvx add-command madsnorgaard/security-audit
-uvx add-command madsnorgaard/performance-check
+agr add madsnorgaard/drush-check
+agr add madsnorgaard/module-scaffold
+agr add madsnorgaard/config-export
+agr add madsnorgaard/security-audit
+agr add madsnorgaard/performance-check
+```
+
+### Quick Start
+
+```bash
+# Install agr via uv
+uv tool install agent-resources
+
+# Add a resource (type auto-detected)
+agr add madsnorgaard/drupal-expert
+
+# Or try temporarily without installing
+agrx madsnorgaard/drupal-expert
+
+# Remove a resource
+agr remove drupal-expert
+
+# List installed resources
+agr list
 ```
 
 ## Philosophy
@@ -97,7 +116,7 @@ Add new resources by creating files in:
 - `.claude/agents/<agent-name>.md` - For agents
 - `.claude/commands/<command-name>.md` - For slash commands
 
-Push to GitHub and they're immediately available via `uvx add-skill/add-agent/add-command`.
+Push to GitHub and they're immediately available via `agr add`.
 
 ## License
 

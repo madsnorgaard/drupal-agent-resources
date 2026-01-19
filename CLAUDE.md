@@ -45,7 +45,7 @@ All Drupal code examples must follow:
 After modifying resources:
 1. Validate YAML frontmatter syntax
 2. Check code examples compile/run
-3. Test installation: `uvx add-skill madsnorgaard/<resource>`
+3. Test installation: `agr add madsnorgaard/<resource>`
 
 ## Naming Conventions
 
@@ -55,10 +55,24 @@ After modifying resources:
 
 ## Installation Commands
 
-Resources are installed via Kasper Junge's agent-resources CLI:
+Resources are installed via Kasper Junge's [agent-resources](https://github.com/kasperjunge/agent-resources) CLI:
 
 ```bash
-uvx add-skill <username>/<skill-name>
-uvx add-command <username>/<command-name>
-uvx add-agent <username>/<agent-name>
+# Install agr
+uv tool install agent-resources
+
+# Add resources (type auto-detected from repo)
+agr add <username>/<resource-name>
+
+# Try temporarily without installing
+agrx <username>/<resource-name>
+
+# Remove a resource
+agr remove <resource-name>
+
+# List installed resources
+agr list
+
+# Use --type flag if multiple resources share a name
+agr add <username>/<resource-name> --type skill
 ```
