@@ -46,6 +46,89 @@ agr remove drupal-expert
 agr list
 ```
 
+## Linux/WSL Installation
+
+If you're on Linux or WSL and don't have pip installed, follow these steps first:
+
+### Prerequisites
+
+For Ubuntu/Debian-based systems (including WSL):
+
+```bash
+# Update package list
+sudo apt update
+
+# Install Python 3 and pip
+sudo apt install -y python3 python3-pip python3-venv
+
+# Verify installation
+python3 --version
+pip3 --version
+```
+
+For other distributions:
+- **Fedora/RHEL**: `sudo dnf install python3 python3-pip`
+- **Arch**: `sudo pacman -S python python-pip`
+
+### Install uv (Universal Package Manager)
+
+```bash
+# Option 1: Using pip (recommended for WSL/Linux)
+pip3 install --user uv
+
+# Option 2: Using curl
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Verify installation
+uv --version
+```
+
+If `uv` command is not found, add to PATH:
+
+```bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### Install agent-resources
+
+```bash
+# Install the agr CLI tool
+uv tool install agent-resources
+
+# Verify installation
+agr --version
+
+# If agr command not found, ensure .local/bin is in PATH:
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### WSL-Specific Notes
+
+- **Path translation**: File paths in WSL use `/mnt/c/` for Windows drives
+- **Line endings**: Ensure git is configured for Unix line endings:
+  ```bash
+  git config --global core.autocrlf input
+  ```
+- **Performance**: For best performance, work within the WSL filesystem (`~/projects/`) rather than `/mnt/c/`
+
+### Troubleshooting
+
+**"Command not found: agr"**
+- Ensure `~/.local/bin` is in your PATH
+- Check installation: `uv tool list`
+- Reinstall: `uv tool uninstall agent-resources && uv tool install agent-resources`
+
+**"Permission denied" errors**
+- Don't use sudo with pip/uv user installs
+- Check file permissions: `ls -la ~/.local/bin/agr`
+
+**Resources not loading in Claude Code**
+- Verify installation: `agr list`
+- Check resource location: `ls -la ~/.claude/`
+- Restart Claude Code after installing new resources
+
 ## Philosophy
 
 **Research before building.** These resources emphasize checking drupal.org for existing contrib modules before writing custom code. Maintainable Drupal sites minimize custom code.
