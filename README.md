@@ -4,6 +4,12 @@ Reusable Claude Code resources for Drupal 10/11 development with DDEV and Docker
 
 Built on the [agent-resources](https://github.com/kasperjunge/agent-resources) package manager by Kasper Junge.
 
+## Vision
+
+Drupal is one of the most mature and well-structured open-source CMS platforms, with over two decades of established APIs, coding standards, and architectural patterns. This maturity makes it exceptionally well-suited for AI-assisted development — the conventions are well-documented, the APIs are consistent, and best practices are clearly defined.
+
+This project aims to set a high standard for how AI coding agents interact with Drupal, by encoding deep Drupal expertise into reusable resources that guide agents toward correct, secure, and maintainable code from the start. See the [ROADMAP.md](ROADMAP.md) for planned resources covering Drupal 11 upgrades, PHP 8.4 compatibility, testing, and more.
+
 ## Installation
 
 Install resources with a single command using `agr` (auto-detects resource type):
@@ -200,6 +206,10 @@ Add new resources by creating files in:
 - `.claude/commands/<command-name>.md` - For slash commands
 
 Push to GitHub and they're immediately available via `agr add`.
+
+## Versioning & Releases
+
+This project follows [Semantic Versioning](https://semver.org/). See [VERSIONING.md](VERSIONING.md) for the full versioning strategy, release process, and quality standards. See [CHANGELOG.md](CHANGELOG.md) for a history of all changes.
 
 ## License
 
