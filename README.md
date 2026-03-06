@@ -6,7 +6,7 @@ Built on the [agent-resources](https://github.com/kasperjunge/agent-resources) p
 
 ## Vision
 
-Drupal is one of the most mature and well-structured open-source CMS platforms, with over two decades of established APIs, coding standards, and architectural patterns. This maturity makes it exceptionally well-suited for AI-assisted development — the conventions are well-documented, the APIs are consistent, and best practices are clearly defined.
+Drupal is one of the most mature and well-structured open-source CMS platforms, with over two decades of established APIs, coding standards, and architectural patterns. This maturity makes it exceptionally well-suited for AI-assisted development - the conventions are well-documented, the APIs are consistent, and best practices are clearly defined.
 
 This project aims to set a high standard for how AI coding agents interact with Drupal, by encoding deep Drupal expertise into reusable resources that guide agents toward correct, secure, and maintainable code from the start. See the [ROADMAP.md](ROADMAP.md) for planned resources covering Drupal 11 upgrades, PHP 8.4 compatibility, testing, and more.
 
