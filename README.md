@@ -16,21 +16,21 @@ Install resources with a single command using `agr` (auto-detects resource type)
 
 ```bash
 # Skills
-agr add madsnorgaard/drupal-expert
-agr add madsnorgaard/drupal-security
-agr add madsnorgaard/drupal-migration
-agr add madsnorgaard/ddev-expert
-agr add madsnorgaard/docker-local
+agr add madsnorgaard/drupal-agent-resources/drupal-expert
+agr add madsnorgaard/drupal-agent-resources/drupal-security
+agr add madsnorgaard/drupal-agent-resources/drupal-migration
+agr add madsnorgaard/drupal-agent-resources/ddev-expert
+agr add madsnorgaard/drupal-agent-resources/docker-local
 
 # Agents
-agr add madsnorgaard/drupal-reviewer
+agr add madsnorgaard/drupal-agent-resources/drupal-reviewer
 
 # Commands
-agr add madsnorgaard/drush-check
-agr add madsnorgaard/module-scaffold
-agr add madsnorgaard/config-export
-agr add madsnorgaard/security-audit
-agr add madsnorgaard/performance-check
+agr add madsnorgaard/drupal-agent-resources/drush-check
+agr add madsnorgaard/drupal-agent-resources/module-scaffold
+agr add madsnorgaard/drupal-agent-resources/config-export
+agr add madsnorgaard/drupal-agent-resources/security-audit
+agr add madsnorgaard/drupal-agent-resources/performance-check
 ```
 
 ### Quick Start
@@ -40,10 +40,10 @@ agr add madsnorgaard/performance-check
 uv tool install agent-resources
 
 # Add a resource (type auto-detected)
-agr add madsnorgaard/drupal-expert
+agr add madsnorgaard/drupal-agent-resources/drupal-expert
 
 # Or try temporarily without installing
-agrx madsnorgaard/drupal-expert
+agrx madsnorgaard/drupal-agent-resources/drupal-expert
 
 # Remove a resource
 agr remove drupal-expert
