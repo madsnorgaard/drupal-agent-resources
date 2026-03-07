@@ -724,6 +724,48 @@ drush field:create          # Create field (fc is alias)
 drush entity:create         # Create entity content
 ```
 
+## Translation
+
+**Every user-facing string must go through Drupal's translation API. Never output raw strings.**
+
+| Context | Correct |
+|---------|---------|
+| PHP (service/controller/form) | `$this->t('Hello @name', ['@name' => $name])` |
+| PHP (static context) | `t('Hello @name', ['@name' => $name])` |
+| Plugin attribute | `new TranslatableMarkup('My Block')` |
+| Twig | `{% trans %}Hello {{ name }}{% endtrans %}` |
+
+### Placeholder types
+- `@variable` — escaped text
+- `%variable` — escaped and emphasised (wrapped in `<em>`)
+- `:variable` — URL (escaped)
+
+### Injecting the translation service
+```php
+public function __construct(
+  protected TranslationInterface $translation,
+) {}
+
+// Then use:
+$this->translation->translate('Some string');
+// Or the shorthand via StringTranslationTrait:
+$this->t('Some string');
+```
+
+Add `use StringTranslationTrait;` to classes that need `$this->t()` without full DI.
+
+### What NOT to do
+```php
+// Wrong — raw string
+return ['#markup' => 'Submit form'];
+
+// Wrong — hardcoded non-English
+return ['#markup' => 'Indsend formular'];
+
+// Correct
+return ['#markup' => $this->t('Submit form')];
+```
+
 ## Twig Best Practices
 
 - Variables are auto-escaped (no need for `|escape`)
