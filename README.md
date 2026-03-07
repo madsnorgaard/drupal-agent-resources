@@ -50,6 +50,9 @@ agr remove drupal-expert
 
 # List installed resources
 agr list
+
+# Update an already-installed resource to the latest version
+agr add madsnorgaard/drupal-agent-resources/drupal-expert --overwrite
 ```
 
 ## Linux/WSL Installation

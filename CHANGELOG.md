@@ -6,10 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-03-07
+
 ### Added
 - `VERSIONING.md` — Versioning strategy, release standards, and quality criteria
 - `CHANGELOG.md` — Project changelog following Keep a Changelog format
 - Vision statement in README.md for Drupal AI-assisted development
+- Document `--overwrite` flag for updating already-installed resources
 
 ## [0.1.0] - 2026-01-28
 
