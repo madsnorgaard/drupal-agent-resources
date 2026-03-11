@@ -59,7 +59,7 @@ Resources are installed via Kasper Junge's [agent-resources](https://github.com/
 
 ```bash
 # Install agr
-uv tool install agent-resources
+uv tool install agr
 
 # Add resources (type auto-detected from repo)
 agr add <username>/<resource-name>

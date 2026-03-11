@@ -37,7 +37,7 @@ agr add madsnorgaard/drupal-agent-resources/performance-check
 
 ```bash
 # Install agr via uv
-uv tool install agent-resources
+uv tool install agr
 
 # Add a resource (type auto-detected)
 agr add madsnorgaard/drupal-agent-resources/drupal-expert
@@ -99,11 +99,11 @@ echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-### Install agent-resources
+### Install agr
 
 ```bash
 # Install the agr CLI tool
-uv tool install agent-resources
+uv tool install agr
 
 # Verify installation
 agr --version
@@ -127,7 +127,7 @@ source ~/.bashrc
 **"Command not found: agr"**
 - Ensure `~/.local/bin` is in your PATH
 - Check installation: `uv tool list`
-- Reinstall: `uv tool uninstall agent-resources && uv tool install agent-resources`
+- Reinstall: `uv tool uninstall agr && uv tool install agr`
 
 **"Permission denied" errors**
 - Don't use sudo with pip/uv user installs
