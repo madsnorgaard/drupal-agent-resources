@@ -136,12 +136,9 @@ jobs:
       - name: Check for broken internal links
         run: |
           echo "Checking for common issues..."
-          # Check for http:// links to drupal.org (should use https)
-          if grep -r "http://drupal.org" .claude/; then
-            echo "Warning: Found http:// links to drupal.org, should use https://"
-          fi
-          # Check for http://www.drupal.org
-          if grep -r "http://www.drupal.org" .claude/; then
-            echo "Warning: Found http:// links to www.drupal.org, should use https://"
+          # Check .claude/ and root-level markdown files for http:// drupal.org links (should use https)
+          if grep -rn --include="*.md" "http://drupal\.org\|http://www\.drupal\.org" .claude/ .; then
+            echo "Error: Found http:// links to drupal.org — use https:// instead"
+            exit 1
           fi
           echo "Link check complete"
