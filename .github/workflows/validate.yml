@@ -133,12 +133,13 @@ jobs:
               print(f"  - Agents: {agent_count}")
           EOF
 
-      - name: Check for broken internal links
+      - name: Check for insecure Drupal links
         run: |
-          echo "Checking for common issues..."
-          # Check all markdown files for http:// drupal.org links (should use https)
-          if grep -rn --include="*.md" --exclude-dir=.git "http://drupal\.org\|http://www\.drupal\.org" .; then
-            echo "Error: Found http:// links to drupal.org — use https:// instead"
+          echo "Checking for http:// links to Drupal domains (should use https://)..."
+          # Covers all *.drupal.org and *.drupalcode.org subdomains
+          DRUPAL_HTTP_PATTERN="http://([a-z0-9.-]+\.)?(drupal\.org|drupalcode\.org)"
+          if grep -rEn --include="*.md" --exclude-dir=.git "$DRUPAL_HTTP_PATTERN" .; then
+            echo "Error: Found http:// links to Drupal domains, use https:// instead"
             exit 1
           fi
           echo "Link check complete"
