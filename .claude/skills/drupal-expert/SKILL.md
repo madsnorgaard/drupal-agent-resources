@@ -812,20 +812,11 @@ return ['#markup' => $this->t('Submit form')];
 **Use PHP attributes for plugins** (works in D10.2+, required style for D11):
 
 ```php
-// Modern style (D10.2+, required for D11)
 #[Block(
   id: 'my_block',
   admin_label: new TranslatableMarkup('My Block'),
 )]
 class MyBlock extends BlockBase {}
-
-// Legacy style (still works but discouraged)
-/**
- * @Block(
- *   id = "my_block",
- *   admin_label = @Translation("My Block"),
- * )
- */
 ```
 
 **Use OOP hooks** (D10.3+):
