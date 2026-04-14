@@ -57,15 +57,6 @@ This document outlines planned improvements and new resources for the drupal-age
 
 **Example Patterns**:
 ```php
-// Old D10 annotation style
-/**
- * @Block(
- *   id = "example_block",
- *   admin_label = @Translation("Example block")
- * )
- */
-
-// New D11 attribute style
 #[Block(
   id: 'example_block',
   admin_label: new TranslatableMarkup('Example block')

@@ -143,3 +143,12 @@ jobs:
             exit 1
           fi
           echo "Link check complete"
+
+      - name: Check for legacy annotation-style plugin declarations
+        run: |
+          echo "Checking for legacy @Annotation-style plugin declarations (should use PHP 8 attributes)..."
+          if grep -rEn --include="*.md" --exclude-dir=.git '@Block\(|@EntityType\(|@FieldType\(|@FieldWidget\(|@FieldFormatter\(|@Plugin\(' .; then
+            echo "Error: Found legacy @Annotation-style plugin declaration, use PHP 8 attributes instead"
+            exit 1
+          fi
+          echo "Annotation check complete"
