@@ -19,6 +19,7 @@ Install resources with a single command using `agr` (auto-detects resource type)
 agr add madsnorgaard/drupal-agent-resources/drupal-expert
 agr add madsnorgaard/drupal-agent-resources/drupal-security
 agr add madsnorgaard/drupal-agent-resources/drupal-migration
+agr add madsnorgaard/drupal-agent-resources/drupal-commerce-9-to-10
 agr add madsnorgaard/drupal-agent-resources/ddev-expert
 agr add madsnorgaard/drupal-agent-resources/docker-local
 
@@ -151,6 +152,7 @@ source ~/.bashrc
 | `drupal-expert` | Drupal 10/11 development - modules, themes, services, hooks, D10/D11 compatibility |
 | `drupal-security` | Security expertise - auto-warns about XSS, SQL injection, access bypass while coding |
 | `drupal-migration` | Migration expertise - D7-to-D10, CSV imports, custom source/process plugins |
+| `drupal-commerce-9-to-10` | Commerce D9→D10 upgrades - runbook, Commerce/Stripe blocker recipes, schema recovery |
 | `ddev-expert` | DDEV local development - commands, Xdebug, custom services, performance tuning |
 | `docker-local` | Custom Docker Compose patterns for non-DDEV projects |
 
