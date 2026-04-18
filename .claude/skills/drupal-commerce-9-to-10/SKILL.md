@@ -59,6 +59,93 @@ ddev drush config:export -y
 
 Commit the config export — this is your rollback baseline.
 
+### Audit Migration Modules and Groups
+
+Commerce sites frequently have active migration modules — from initial data imports, ongoing feeds, or a prior D7→D9 migration. These must be inventoried before upgrading.
+
+```bash
+# List all enabled migration modules
+ddev drush pm:list --status=enabled --type=module | grep -i migrat
+
+# List all registered migration groups
+ddev drush migrate:status --group=all 2>/dev/null || ddev drush migrate:status
+```
+
+If `migrate_tools` is installed, list every migration group and its state:
+
+```bash
+ddev drush sqlq "SELECT id, label FROM config WHERE name LIKE 'migrate_plus.migration_group.%';" | cat
+```
+
+Check for Commerce-specific migration modules:
+
+| Module | Purpose | D10 Action |
+|--------|---------|------------|
+| `commerce_migrate` | Ubercart/Commerce 1.x → Commerce 2.x | Check for D10-compatible release; remove if migration is complete |
+| `migrate_drupal_commerce` | D7 Commerce → D9/D10 Commerce | Verify compatibility; may need patch for D10 |
+| `commerce_feeds` | Product feed imports | Check D10 release; consider replacement with `migrate_plus` |
+| `migrate_plus` | Config-based migrations, groups | Update to D10-compatible version (`^6`) |
+| `migrate_tools` | Drush commands for migrations | Update to D10-compatible version (`^6`) |
+| `migrate_file` | File migration handling | Update to D10-compatible version |
+
+#### Check for In-Progress or Stuck Migrations
+
+Migrations left in an "Importing" state will block `updatedb`:
+
+```bash
+# Show migration status — look for "Importing" or "Stopping" states
+ddev drush migrate:status 2>/dev/null
+
+# Reset any stuck migrations before upgrading
+ddev drush migrate:reset-status <migration_id>
+```
+
+If you have many stuck migrations:
+
+```sql
+-- Find all migrations in a non-idle state
+SELECT m.name, m.value FROM key_value m
+WHERE m.collection = 'migrate_status'
+  AND m.value != 'i:0;';
+
+-- Reset all to idle (value 0)
+UPDATE key_value
+SET value = 'i:0;'
+WHERE collection = 'migrate_status';
+```
+
+#### Decide: Keep or Remove Migration Modules
+
+**If the original migration is complete** (all data is in D9 and verified):
+
+```bash
+# Uninstall migration modules cleanly before upgrading
+ddev drush pm:uninstall commerce_migrate migrate_drupal migrate_drupal_ui -y
+ddev drush cr
+```
+
+Uninstalling before the D10 upgrade avoids update hook failures from migration modules that lack D10 releases.
+
+**If migrations are still active** (ongoing feeds, periodic imports):
+
+Keep the modules but ensure every one has a D10-compatible release. Check each on drupal.org:
+- `migrate_plus` ≥ 6.0 for D10
+- `migrate_tools` ≥ 6.0 for D10
+- `commerce_migrate` — check issue queue for D10 status
+
+#### Export Migration Group Configuration
+
+If you are keeping migration modules, export their config so you can restore after upgrade:
+
+```bash
+# Export migration group and migration configs
+ddev drush config:export --destination=/tmp/migration-config -y
+ls /tmp/migration-config/migrate_plus.migration_group.* 2>/dev/null
+ls /tmp/migration-config/migrate_plus.migration.* 2>/dev/null
+```
+
+Back these up separately — `updatedb` can alter or delete migration configuration.
+
 ### Record Schema Versions
 
 ```bash
@@ -310,6 +397,51 @@ ddev drush updatedb-status
 # No errors about missing modules
 ddev drush cr
 ```
+
+---
+
+### Post-Update: Verify Migration Module Group Integrity
+
+After all update hooks pass, verify that migration modules and their groups survived the upgrade intact.
+
+```bash
+# Check migration module status
+ddev drush pm:list --status=enabled | grep -i migrat
+
+# List all migration groups
+ddev drush migrate:status 2>/dev/null
+```
+
+**If migration config was deleted by `updatedb`:**
+
+Re-import the migration group configuration you backed up in Phase 1:
+
+```bash
+ddev drush config:import --partial --source=/tmp/migration-config -y
+ddev drush cr
+ddev drush migrate:status
+```
+
+**If `migrate_plus` or `migrate_tools` update hooks changed group structure:**
+
+```bash
+# List current migration group configs
+ddev drush config:list | grep migrate_plus.migration_group
+
+# Verify each group still contains its expected migrations
+ddev drush migrate:status --group=<group_name>
+```
+
+**Common issue — migration map tables renamed or dropped:**
+
+D10 schema changes can affect `migrate_map_*` and `migrate_message_*` tables. Check that map tables still exist for active migrations:
+
+```sql
+SHOW TABLES LIKE 'migrate_map_%';
+SHOW TABLES LIKE 'migrate_message_%';
+```
+
+If a map table is missing, the migration will behave as though it has never been run. For ongoing imports this means duplicate content on next run — re-create the map table from a backup or run a rollback-and-reimport.
 
 ---
 
