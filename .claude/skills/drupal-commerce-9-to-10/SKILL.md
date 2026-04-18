@@ -292,17 +292,14 @@ WHERE collection = 'system.schema'
   AND name = 'some_removed_module';
 ```
 
-Also clean up related configuration:
-
-```sql
--- Remove from core.extension
--- First, check the current value:
-SELECT value FROM key_value WHERE collection = 'system.schema' AND name = 'some_removed_module';
-```
+Also clean up `core.extension` config so Drupal does not try to load the module:
 
 ```bash
-# Remove from config if still referenced
-ddev drush config:delete core.extension module.some_removed_module 2>/dev/null
+# Check if the module is still listed in core.extension
+ddev drush config:get core.extension module.some_removed_module 2>/dev/null
+
+# If listed, remove it by editing core.extension directly
+ddev drush php:eval "\$config = \Drupal::configFactory()->getEditable('core.extension'); \$modules = \$config->get('module'); unset(\$modules['some_removed_module']); \$config->set('module', \$modules)->save();"
 ddev drush cr
 ```
 
