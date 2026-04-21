@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Added
+- `drupal-commerce-9-to-10` — Commerce D9→D10 upgrade skill with phase-structured runbook and deterministic recovery recipes for `commerce_stripe_update_8102/8104`, `dblog_update_10100`, and orphaned `system.schema` entries
+
 ## [0.1.1] - 2026-03-07
 
 ### Added
