@@ -149,7 +149,7 @@ Back these up separately — `updatedb` can alter or delete migration configurat
 ### Record Schema Versions
 
 ```bash
-ddev drush sqlq "SELECT name, schema_version FROM key_value WHERE collection = 'system.schema' ORDER BY name;" | cat
+ddev drush php:eval '$schemas = \Drupal::keyValue("system.schema")->getAll(); ksort($schemas); foreach ($schemas as $name => $version) { echo $name . "\t" . $version . PHP_EOL; }' | cat
 ```
 
 Save this output. You will need it to diagnose orphaned schema entries in Phase 3.
