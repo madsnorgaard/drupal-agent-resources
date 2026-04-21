@@ -291,7 +291,7 @@ WHERE collection = 'system.schema'
 
 ```bash
 ddev drush updatedb-status
-ddev drush sqlq "SELECT schema_version FROM key_value WHERE collection = 'system.schema' AND name = 'commerce_stripe';" | cat
+ddev drush php:eval "echo \Drupal::keyValue('system.schema')->get('commerce_stripe'), PHP_EOL;"
 ```
 
 ---
