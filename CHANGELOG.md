@@ -6,8 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-22
+
 ### Added
-- `drupal-commerce-9-to-10` — Commerce D9→D10 upgrade skill with phase-structured runbook and deterministic recovery recipes for `commerce_stripe_update_8102/8104`, `dblog_update_10100`, and orphaned `system.schema` entries
+- `drupal-commerce-9-to-10` — Commerce D9→D10 upgrade skill with a phase-structured runbook and deterministic recovery recipes for `__PHP_Incomplete_Class` in `DefaultTableMapping`, `commerce_stripe_update_8102`, `commerce_stripe_update_8104` (with required follow-up checklist before production rollout), `dblog_update_10100` (`MySQL server has gone away` on `ALTER TABLE watchdog`), and orphaned `system.schema` entries. Schema version overrides use integer serialization (`i:N;`) and prefer `\Drupal::keyValue('system.schema')->set()` to avoid brittle hand-written PHP string serialization (#14, #15)
+
+### Known limitations
+- The migration-module-group audit (Phase 1) and post-update migration-group integrity check (Phase 3) in `drupal-commerce-9-to-10` have not been validated against a real D7-to-D10 Commerce migration. Tracked in #16
 
 ## [0.1.1] - 2026-03-07
 
