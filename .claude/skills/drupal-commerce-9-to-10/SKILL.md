@@ -216,7 +216,51 @@ If it completes cleanly, skip to Phase 4. If it fails, identify the failing upda
 
 ---
 
-### Blocker 1: `commerce_stripe_update_8102` — Column Already Exists
+### Blocker 1: `__PHP_Incomplete_Class` in `DefaultTableMapping`
+
+**Symptom:**
+
+```
+PHP Fatal error: Uncaught Error: Cannot use __PHP_Incomplete_Class as array
+... in Drupal\Core\Entity\Sql\DefaultTableMapping
+```
+
+Often surfaces during `commerce_stripe_update_8102` or `admin_toolbar_update_8003`, but the underlying corruption is independent of either hook and will keep breaking later updates until it is cleared.
+
+**Cause:** The `key_value` row under `entity.definitions.installed` / `commerce_payment_method.field_storage_definitions` holds a serialized entity definition snapshot from the pre-upgrade codebase. During the D10 update run Drupal tries to unserialize it, but the referenced class has been removed or renamed, producing `__PHP_Incomplete_Class` objects that `DefaultTableMapping` then tries to dereference as an array. The site looks broken at the Commerce layer, but the root cause is stale cached entity metadata.
+
+**Recovery:**
+
+```bash
+# Backup the row before deleting it
+ddev mysql -e "
+CREATE TABLE IF NOT EXISTS key_value_backup LIKE key_value;
+INSERT INTO key_value_backup
+SELECT * FROM key_value
+WHERE collection='entity.definitions.installed'
+  AND name='commerce_payment_method.field_storage_definitions';
+DELETE FROM key_value
+WHERE collection='entity.definitions.installed'
+  AND name='commerce_payment_method.field_storage_definitions';
+"
+
+# Re-run updates; Drupal rebuilds the entity definition from live class code
+ddev drush updb -y
+```
+
+**Verification:**
+
+```bash
+ddev drush updatedb-status
+ddev drush php:eval "var_export(\Drupal::keyValue('entity.definitions.installed')->get('commerce_payment_method.field_storage_definitions') !== NULL);"
+# Expected: true (a fresh definition has been rebuilt)
+```
+
+If `__PHP_Incomplete_Class` errors persist, check for additional entity types with corrupt `field_storage_definitions` rows. The same pattern can affect `commerce_order`, `commerce_product_variation`, and other Commerce entities. Widen the query and repeat the backup-and-delete for each affected row.
+
+---
+
+### Blocker 2: `commerce_stripe_update_8102` — Column Already Exists
 
 **Symptom:**
 
@@ -230,59 +274,23 @@ The update hook tries to add a `stripe_customer_id` column to `commerce_payment_
 
 **Recovery:**
 
-```sql
--- Verify the column already exists
-SHOW COLUMNS FROM commerce_payment_method LIKE 'stripe_customer_id';
+Verify the column is already in place:
 
--- If the column exists, skip the update by setting the schema version past it
-UPDATE key_value
-SET value = 's:4:"8102";'
-WHERE collection = 'system.schema'
-  AND name = 'commerce_stripe';
+```sql
+SHOW COLUMNS FROM commerce_payment_method LIKE 'stripe_customer_id';
 ```
 
-**Verification:**
+If it exists, advance the schema version past `8102` via the keyValue service. This serializes the value correctly as an integer (`i:8102;`) and avoids the brittle hand-written PHP string format:
 
 ```bash
-ddev drush updatedb-status
-# commerce_stripe should no longer list 8102 as pending
+ddev drush php:eval "\Drupal::keyValue('system.schema')->set('commerce_stripe', 8102);"
 ```
 
----
-
-### Blocker 2: `commerce_stripe_update_8104` — Table or Column Missing
-
-**Symptom:**
-
-```
-[error] SQLSTATE[42S02]: Base table or view not found: 1146 Table 'db.commerce_stripe_checkout_session' doesn't exist
-```
-
-Or a similar error referencing a missing column that `8104` expects to exist from a prior update.
-
-**Cause:** The `8104` hook assumes `8102` and `8103` completed cleanly. If you skipped or partially applied earlier updates, the prerequisite schema changes are missing.
-
-**Recovery — Option A (table is genuinely missing):**
-
-```sql
--- Create the expected table structure
-CREATE TABLE IF NOT EXISTS commerce_stripe_checkout_session (
-  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  checkout_session_id VARCHAR(255) NOT NULL,
-  order_id INT UNSIGNED NOT NULL,
-  created INT NOT NULL DEFAULT 0,
-  UNIQUE KEY checkout_session_id (checkout_session_id),
-  KEY order_id (order_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
-
-Then re-run: `ddev drush updatedb -y`
-
-**Recovery — Option B (skip if your site does not use Stripe Checkout Sessions):**
+Raw SQL alternative if `drush` is unavailable:
 
 ```sql
 UPDATE key_value
-SET value = 's:4:"8104";'
+SET value = 'i:8102;'
 WHERE collection = 'system.schema'
   AND name = 'commerce_stripe';
 ```
@@ -292,53 +300,101 @@ WHERE collection = 'system.schema'
 ```bash
 ddev drush updatedb-status
 ddev drush php:eval "echo \Drupal::keyValue('system.schema')->get('commerce_stripe'), PHP_EOL;"
+# commerce_stripe should no longer list 8102 as pending and should report 8102 or higher
 ```
 
 ---
 
-### Blocker 3: `dblog_update_10100` — Long to Int Conversion Failure
+### Blocker 3: `commerce_stripe_update_8104` — Hook-Level Error on Missing Payment Method Metadata
 
 **Symptom:**
 
 ```
-[error] Failed to convert field 'wid' to type 'int' in table 'watchdog'
+[error] Undefined array key "method_id"
+[error] Call to a member function getType() on null
 ```
 
-Or:
+Hit during `ddev drush updb -y` while the site is running `commerce_stripe_update_8104`. The hook dereferences payment-method metadata that is missing or shaped differently than the hook expects.
+
+**Cause:** A PHP-level bug inside the `commerce_stripe` update hook when it encounters payment methods whose stored metadata does not match the hook's expected structure. This is not a missing-table or missing-column issue; the hook itself raises a fatal error mid-run.
+
+**Recovery (last-resort workaround, requires follow-up, see below):**
+
+Back up the current `system.schema` row for `commerce_stripe`, then advance the schema version past `8104` so the remaining update hooks and `post_update` steps can run. This skips the failed hook rather than repairing it.
+
+```bash
+ddev mysql -e "
+CREATE TABLE IF NOT EXISTS key_value_backup LIKE key_value;
+INSERT INTO key_value_backup
+SELECT * FROM key_value
+WHERE collection='system.schema'
+  AND name='commerce_stripe';
+"
+ddev drush php:eval "\Drupal::keyValue('system.schema')->set('commerce_stripe', 8106);"
+ddev drush updb -y
+```
+
+**Verification:**
+
+```bash
+ddev drush updatedb-status
+ddev drush php:eval "echo \Drupal::keyValue('system.schema')->get('commerce_stripe'), PHP_EOL;"
+```
+
+**Required follow-up before production rollout:**
+
+Skipping `8104` means the data shape the hook was meant to update has not actually been migrated. Before the next production deploy, do the following on a restored pre-skip backup of the database:
+
+1. Read the hook source. Look up `commerce_stripe_update_8104` in `modules/contrib/commerce_stripe/commerce_stripe.install` or on drupal.org. Understand what data it reads and writes.
+2. Decide whether the target data shape is in use on this site. If the site does not use the Stripe payment methods or features the hook touches, the skip is safe. Document this in writing.
+3. If the data is in use, repair the inputs and re-run the hook rather than keeping the skip. Reset `system.schema` back to the pre-skip value from `key_value_backup` and let `updatedb` execute `8104` against cleaned inputs.
+4. Re-verify payments. Run a live Stripe transaction in test mode, confirm `commerce_payment_method` rows look correct, and check that saved customer payment methods still authorise.
+
+Do not ship the skip to production unsupervised.
+
+---
+
+### Blocker 4: `dblog_update_10100` — `ALTER TABLE watchdog` Exceeds MySQL Timeout
+
+**Symptom:**
 
 ```
-[error] SQLSTATE[22003]: Numeric value out of range
+[error] SQLSTATE[HY000]: General error: 2006 MySQL server has gone away
 ```
 
-**Cause:** Drupal 10 changes the `wid` column in the `watchdog` table from `BIGINT`/`SERIAL` to `INT`. On sites with a large watchdog table, existing `wid` values may exceed the `INT` range (2,147,483,647), or the table may be too large for an in-place `ALTER TABLE` to succeed.
+Hit during `ddev drush updb -y` while `dblog_update_10100` runs `ALTER TABLE watchdog ... BIGINT`. Less commonly, on sites whose `wid` values have exceeded the old `INT` range, the alteration instead fails with `SQLSTATE[22003]: Numeric value out of range`.
 
-**Recovery:**
+**Cause:** D10 widens the `wid` column in the `watchdog` table to `BIGINT`. On sites with a large watchdog table the in-place `ALTER TABLE` runs longer than MySQL's connection-idle limit (`wait_timeout`, or the local DDEV `max_allowed_packet`), and MySQL drops the connection mid-run. The numeric-overflow variant has the same root shape (the old column can't hold values during the conversion) and clears with the same recovery.
+
+**Recovery (fastest, what we ran in production):**
+
+Uninstall `dblog` before running updates so the alteration is never attempted, then re-enable it afterwards. This is safe: `watchdog` holds operational logging only.
+
+```bash
+ddev drush pm:uninstall dblog -y
+ddev drush updb -y
+ddev drush en dblog -y
+ddev drush cr
+```
+
+**Alternative (keep dblog installed, shrink the table first):**
+
+If you need to preserve recent watchdog entries, prune the table so the `ALTER TABLE` stays under the MySQL timeout window.
 
 ```sql
--- Check current max wid
-SELECT MAX(wid) FROM watchdog;
+SELECT COUNT(*) FROM watchdog;
 
--- If max(wid) exceeds 2147483647, truncate or prune first
--- WARNING: This deletes log entries. This is safe — watchdog is operational logging.
+-- Keep only the last 100,000 entries
+CREATE TABLE watchdog_backup AS SELECT * FROM watchdog ORDER BY wid DESC LIMIT 100000;
 TRUNCATE TABLE watchdog;
-
--- Now the column alteration will succeed on re-run
+INSERT INTO watchdog SELECT * FROM watchdog_backup;
+DROP TABLE watchdog_backup;
 ```
 
 Then re-run:
 
 ```bash
-ddev drush updatedb -y
-```
-
-**Alternative (keep recent logs):**
-
-```sql
--- Keep only the last 100,000 entries and reset wid
-CREATE TABLE watchdog_backup AS SELECT * FROM watchdog ORDER BY wid DESC LIMIT 100000;
-TRUNCATE TABLE watchdog;
-INSERT INTO watchdog SELECT * FROM watchdog_backup;
-DROP TABLE watchdog_backup;
+ddev drush updb -y
 ```
 
 **Verification:**
@@ -351,7 +407,7 @@ ddev drush watchdog:show --count=5
 
 ---
 
-### Blocker 4: Orphaned `system.schema` Entries
+### Blocker 5: Orphaned `system.schema` Entries
 
 **Symptom:**
 
@@ -499,17 +555,22 @@ git commit -m "Drupal 10 upgrade complete"
 
 ## Quick Reference: Schema Version Overrides
 
-When skipping a failed update hook, match the `value` format exactly. Drupal stores schema versions as serialized PHP strings:
+When skipping a failed update hook, prefer the keyValue service. It serializes the integer value correctly and avoids hand-written serialization bugs:
 
-```sql
--- Pattern: 's:<length>:"<version>";'
--- Examples:
-UPDATE key_value SET value = 's:4:"8102";' WHERE collection = 'system.schema' AND name = 'commerce_stripe';
-UPDATE key_value SET value = 's:4:"8104";' WHERE collection = 'system.schema' AND name = 'commerce_stripe';
-UPDATE key_value SET value = 's:5:"10100";' WHERE collection = 'system.schema' AND name = 'dblog';
+```bash
+ddev drush php:eval "\Drupal::keyValue('system.schema')->set('commerce_stripe', 8106);"
+ddev drush php:eval "\Drupal::keyValue('system.schema')->set('dblog', 10101);"
 ```
 
-**Warning:** Only skip an update hook when you have confirmed the schema change it applies either already exists or is not needed by your site. Blindly skipping updates will cause data loss or runtime errors.
+Raw SQL alternative. Schema versions are stored as serialized integers (`i:<version>;`), not strings. Writing `s:<length>:"<version>";` is brittle, because a miscounted length prefix silently corrupts `system.schema`:
+
+```sql
+UPDATE key_value SET value = 'i:8102;' WHERE collection = 'system.schema' AND name = 'commerce_stripe';
+UPDATE key_value SET value = 'i:8106;' WHERE collection = 'system.schema' AND name = 'commerce_stripe';
+UPDATE key_value SET value = 'i:10101;' WHERE collection = 'system.schema' AND name = 'dblog';
+```
+
+**Warning:** Only skip an update hook when you have confirmed the schema change it applies either already exists or is not needed by your site. Blindly skipping updates will cause data loss or runtime errors. For hooks you have not diagnosed, treat the skip as a last-resort workaround and plan a follow-up repair before production rollout (see Blocker 3 for a worked example).
 
 ## Pre-Upgrade Checklist
 
