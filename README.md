@@ -219,3 +219,7 @@ This project follows [Semantic Versioning](https://semver.org/). See [VERSIONING
 ## License
 
 MIT
+
+## Author
+
+Mads Nørgaard, senior developer and DevOps engineer (Drupal, Nuxt). [madsnorgaard.net](https://madsnorgaard.net)
